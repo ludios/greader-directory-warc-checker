@@ -218,7 +218,7 @@ def main():
 			[exes['sh'], '-c', r"trap '' INT tstp 30; %(bzip2)s > %(bzip2_bundle_fname)s" %
 				dict(bzip2_bundle_fname=bzip2_bundle_fname, **exes)],
 			stdin=subprocess.PIPE, bufsize=4*1024*1024, close_fds=True)
-		bzip2_bundle = bzip2_bundle_fname.stdin
+		bzip2_bundle = bzip2_bundle_proc.stdin
 	else:
 		bzip2_bundle = None
 
