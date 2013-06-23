@@ -210,7 +210,7 @@ def main():
 		#
 		# We use close_fds=True because otherwise .communicate() later deadlocks on
 		# Python 2.6.  See http://stackoverflow.com/questions/14615462/why-does-communicate-deadlock-when-used-with-multiple-popen-subprocesses
-		bzip2_bundle_fname = join(options.lists_dir, full_date + ".bz2")
+		bzip2_bundle_fname = join(options.bzip2_bundle_dir, full_date + ".bz2")
 		check_filename(bzip2_bundle_fname)
 		assert not os.path.exists(bzip2_bundle_fname), bzip2_bundle_fname
 		try_makedirs(parent(bzip2_bundle_fname))
