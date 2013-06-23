@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "20130623.1430"
+__version__ = "20130623.1633"
 
 import os
 import sys
@@ -153,7 +153,7 @@ def get_exes():
 	if not sh_exe:
 		raise RuntimeError("sh not found in PATH")
 
-	return dict(bzip2=bzip2_exe, gunzip=gunzip_exe, grep=grep_exe, sh=sh_exe)
+	return dict(bzip2=bzip2_exe, sh=sh_exe)
 
 
 def main():
