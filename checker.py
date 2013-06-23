@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "20130623.0800"
+__version__ = "20130623.1430"
 
 import os
 import sys
@@ -11,6 +11,7 @@ import datetime
 import random
 import zlib
 import distutils.spawn
+import gzip
 
 from optparse import OptionParser
 
@@ -61,29 +62,24 @@ def get_info_from_warc_fname(fname):
 	return dict(uploader=uploader, item_name=item_name, basename=basename(fname))
 
 
-def check_warc(fname, info, bzip2_bundle, exes):
-	check_filename(fname)
-
-	args = [exes['sh'], '-c', r"""
-trap '' INT tstp 30;
-%(gunzip)s --to-stdout '%(fname)s'""".replace("\n", "") % dict(
-		fname=fname, **exes)]
-	gunzip_proc = subprocess.Popen(args, stdout=subprocess.PIPE, bufsize=4*1024*1024, close_fds=True)
-	# TODO: do we need to read stderr continuously as well to avoid deadlock?
+def slurp_gz(fname):
+	f = gzip.open(fname, "rb")
 	try:
-		while True:
-			block = gunzip_proc.stdout.read(4*1024*1024)
-			if bzip2_bundle:
-				bzip2_bundle.write(block)
-			if not block:
-				break
+		contents = f.read()
 	finally:
-		_, stderr = gunzip_proc.communicate()
-		if stderr:
-			print stderr
-			raise BadWARC("Got stderr from gunzip process: %r" % (stderr,))
-		if gunzip_proc.returncode != 0:
-			raise BadWARC("Got process exit code %r from gunzip process" % (gunzip_proc.returncode,))
+		f.close()
+	return contents
+
+
+def check_warc(fname, info, bzip2_bundle):
+	# -directory warcs are ~300KB compressed; we can load them into memory
+	try:
+		contents = slurp_gz(fname)
+	except (IOError, OSError), e:
+		raise BadWARC("slurp_gz: %r" % (e,))
+
+	if bzip2_bundle:
+		bzip2_bundle.write(contents)
 
 
 def get_mtime(fname):
@@ -129,7 +125,7 @@ def check_input_base(options, verified_dir, bad_dir, bzip2_bundle, exes, full_da
 
 				info = get_info_from_warc_fname(fname)
 				try:
-					check_warc(fname, info, bzip2_bundle, exes)
+					check_warc(fname, info, bzip2_bundle)
 				except BadWARC:
 					msg = "bad"
 					dest_dir = bad_dir
@@ -152,14 +148,6 @@ def get_exes():
 		bzip2_exe = distutils.spawn.find_executable('bzip2')
 		if not bzip2_exe:
 			raise RuntimeError("lbzip2 or bzip2 not found in PATH")
-
-	gunzip_exe = distutils.spawn.find_executable('gunzip')
-	if not gunzip_exe:
-		raise RuntimeError("gunzip not found in PATH")
-
-	grep_exe = distutils.spawn.find_executable('grep')
-	if not grep_exe:
-		raise RuntimeError("grep not found in PATH")
 
 	sh_exe = distutils.spawn.find_executable('sh')
 	if not sh_exe:
